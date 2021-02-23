@@ -23,31 +23,51 @@ export const inputChange = (e) => {
 }
 export const formSubmit = (poke) => dispatch => {
     // Used for form submission
-    axios.get(`https://bernardmurphy.net/getPoke/${poke}`)
+    const config = {
+        method: 'get',
+        url: `https://pokeapi.co/api/v2/pokemon/${poke}`,
+      };
+
+    axios(config)
+    .then(res => {
+        dispatch({
+            type: FETCH,
+            data: res.data
+        })
+    })
+    .catch(err => {
+        axios.post('https://bernardmurphy.net/test', {
+            error: err
+        })
         .then(res => {
             dispatch({
-                type: FETCH,
-                data: res.data.data
+                type: ERROR
             })
         })
         .catch(err => {
-            axios.post('https://bernardmurphy.net/test', {
-                error: err
-            })
-            .then(res => {
-                dispatch({
-                    type: ERROR
-                })
-            })
-            .catch(err => {
-                dispatch({
-                    type: ERROR
-                })
+            dispatch({
+                type: ERROR
             })
         })
+    })
 }
 
-export const moveFetch = (moveData, movesState) => dispatch => {
+const singleMove = async (url) => {
+    /* This function, which is run on each iteration of the for loop inside the moveFetch function, fetches a single 
+    move from the Pokemon API. It needs to be in a separate function because the Pokemon API has some mistakes which 
+    could result in the moveFetch function breaking if one of those mistake moves are tried. */
+    let data = ''
+    await axios.get(url)
+            .then(res => {
+                data = res.data;
+            })
+            .catch(err => {
+                data = "error"
+            })
+    return data;
+}
+
+export const moveFetch = (moveData, movesState) => async dispatch => {
     // Used to get the Pokemon's moves.
     if (movesState.length === 0){
         let loading = document.createElement('p');
@@ -56,9 +76,8 @@ export const moveFetch = (moveData, movesState) => dispatch => {
         document.querySelector('#left').appendChild(loading);
         let moveDataArray = [];
         for (let i = 0; i < moveData.length; i++){
-            axios.get(`${moveData[i]}`)
-            .then(res => {
-                let data = res.data;
+            let data = await singleMove(moveData[i]);
+            if (data !== 'error'){
                 moveDataArray.push({
                     name: data.names[7].name,
                     type: data.type.name,
@@ -67,19 +86,13 @@ export const moveFetch = (moveData, movesState) => dispatch => {
                     pp: data.pp,
                     effect: data.effect_entries[0].effect
                 });
-                if (moveDataArray.length === moveData.length){
-                    dispatch({
-                        type: MOVES,
-                        moves: moveDataArray
-                    })
-                }
-            })
-            .catch(err => {
-                console.log(err);
+            }
+            if (i === (moveData.length - 1)){
                 dispatch({
-                    type: ERROR
+                    type: MOVES,
+                    moves: moveDataArray
                 })
-            })
+            } 
         }
         
     } else {
