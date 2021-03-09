@@ -75,7 +75,8 @@ const reducer = (state = initialState, action) => {
                 error: false,
                 display: true,
                 moveUrls: stateMoves,
-                showMoves: false
+                showMoves: false,
+                moves: []
             }
         case ERROR:
             // This event is fired in the "catch" blocks of promise-based events
